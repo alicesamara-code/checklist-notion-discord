@@ -1,67 +1,29 @@
-import NextAuth from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import prisma from "@/db";
-import bcrypt from "bcryptjs";
+import NextAuth from "next-auth"
+import type { NextAuthOptions } from "next-auth"
+import CredentialsProvider from "next-auth/providers/credentials"
 
-export const authOptions = {
-    providers: [
-        CredentialsProvider({
-            name: "Credentials",
-            credentials: {
-                email: { label: "Email", type: "text" },
-                password: { label: "Password", type: "password" },
-            },
-            async authorize(credentials) {
-                if (!credentials?.email || !credentials?.password) {
-                    return null;
-                }
+const authOptions: NextAuthOptions = {
+  providers: [
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email) return null
 
-                const user = await prisma.user.findUnique({
-                    where: { email: credentials.email },
-                });
+        return {
+          id: "1",
+          email: credentials.email,
+        }
+      },
+    }),
+  ],
+  session: {
+    strategy: "jwt",
+  },
+}
 
-                if (!user) {
-                    return null;
-                }
+const handler = NextAuth(authOptions)
 
-                const isPasswordValid = await bcrypt.compare(
-                    credentials.password,
-                    user.password
-                );
-
-                if (!isPasswordValid) {
-                    return null;
-                }
-
-                return {
-                    id: user.id,
-                    email: user.email,
-                };
-            },
-        }),
-    ],
-    session: {
-        strategy: "jwt" as const,
-    },
-    pages: {
-        signIn: "/login",
-    },
-    callbacks: {
-        async session({ session, token }: any) {
-            if (token) {
-                session.user.id = token.id;
-            }
-            return session;
-        },
-        async jwt({ token, user }: any) {
-            if (user) {
-                token.id = user.id;
-            }
-            return token;
-        },
-    },
-};
-
-const handler = NextAuth(authOptions);
-
-export { handler as GET, handler as POST };
+export { handler as GET, handler as POST }
