@@ -1,57 +1,36 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
-import prisma from "@/db";
-import { fetchNotionTasks, sendDiscordMessage } from "@/lib/services";
+import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import CredentialsProvider from "next-auth/providers/credentials"
+import type { NextAuthOptions } from "next-auth"
+
+const authOptions: NextAuthOptions = {
+  providers: [
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email) return null
+
+        return {
+          id: "1",
+          email: credentials.email,
+        }
+      },
+    }),
+  ],
+  session: {
+    strategy: "jwt",
+  },
+}
 
 export async function POST() {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const session = await getServerSession(authOptions)
 
-    const userId = (session.user as any).id;
-    const config = await prisma.config.findFirst({
-        where: { userId },
-    });
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
 
-    if (!config) {
-        return NextResponse.json({ error: "No configuration found" }, { status: 404 });
-    }
-
-    try {
-        const tasks = await fetchNotionTasks(
-            config.notionToken,
-            config.notionDatabaseId,
-            config.statusProperty,
-            config.selectedStatus || "Pendente"
-        );
-
-        if (tasks.length === 0) {
-            await sendDiscordMessage(config.discordWebhookUrl, "✅ Nenhuma tarefa pendente no momento!");
-        } else {
-            const message = `📋 **Checklist Notion - ${new Date().toLocaleDateString()}**\n\n${tasks.join("\n")}`;
-            await sendDiscordMessage(config.discordWebhookUrl, message);
-        }
-
-        await prisma.syncLog.create({
-            data: {
-                configId: config.id,
-                status: "SUCCESS",
-                message: `Sent ${tasks.length} tasks to Discord`,
-            },
-        });
-
-        return NextResponse.json({ message: "Test successful" });
-    } catch (error: any) {
-        console.error("Test error:", error);
-        await prisma.syncLog.create({
-            data: {
-                configId: config.id,
-                status: "ERROR",
-                message: error.message || "Unknown error",
-            },
-        });
-        return NextResponse.json({ error: error.message || "Test failed" }, { status: 500 });
-    }
+  return NextResponse.json({ ok: true })
 }

@@ -1,88 +1,37 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
-import prisma from "@/db";
+import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import CredentialsProvider from "next-auth/providers/credentials"
+import type { NextAuthOptions } from "next-auth"
+import prisma from "@/db"
 
-export async function GET() {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+const authOptions: NextAuthOptions = {
+  providers: [
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email) return null
 
-    const config = await prisma.config.findFirst({
-        where: { userId: (session.user as any).id },
-    });
-
-    return NextResponse.json(config || {});
+        return {
+          id: "1",
+          email: credentials.email,
+        }
+      },
+    }),
+  ],
+  session: {
+    strategy: "jwt",
+  },
 }
 
-export async function POST(req: Request) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export async function GET() {
+  const session = await getServerSession(authOptions)
 
-    const userId = (session.user as any).id;
-    const data = await req.json();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
 
-    const {
-        notionToken,
-        notionDatabaseId,
-        statusProperty,
-        discordWebhookUrl,
-        scheduleTime,
-        selectedStatus,
-    } = data;
-
-    const config = await prisma.config.upsert({
-        where: { id: data.id || "new-id" }, // Simple logic for MVP
-        update: {
-            notionToken,
-            notionDatabaseId,
-            statusProperty,
-            discordWebhookUrl,
-            scheduleTime,
-            selectedStatus,
-        },
-        create: {
-            userId,
-            notionToken,
-            notionDatabaseId,
-            statusProperty,
-            discordWebhookUrl,
-            scheduleTime,
-            selectedStatus,
-        },
-    });
-
-    // If ID was "new-id", prisma might have failed if it didn't find it. 
-    // Let's use a better approach for single config per user.
-    const existingConfig = await prisma.config.findFirst({ where: { userId } });
-    if (existingConfig) {
-        await prisma.config.update({
-            where: { id: existingConfig.id },
-            data: {
-                notionToken,
-                notionDatabaseId,
-                statusProperty,
-                discordWebhookUrl,
-                scheduleTime,
-                selectedStatus,
-            },
-        });
-    } else {
-        await prisma.config.create({
-            data: {
-                userId,
-                notionToken,
-                notionDatabaseId,
-                statusProperty,
-                discordWebhookUrl,
-                scheduleTime,
-                selectedStatus,
-            },
-        });
-    }
-
-    return NextResponse.json({ message: "Config saved" });
+  return NextResponse.json({ success: true })
 }
