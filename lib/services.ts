@@ -1,7 +1,8 @@
 import { Client } from "@notionhq/client";
 
 export async function fetchNotionTasks(token: string, databaseId: string, statusProp: string, statusValue: string) {
-    const notion = new Client({ auth: token });
+    const notion = new Client({ auth: token }) as any;
+
 
     const response = await notion.databases.query({
         database_id: databaseId,
