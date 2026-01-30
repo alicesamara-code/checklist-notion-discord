@@ -1,130 +1,127 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 
-export default function Dashboard() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [config, setConfig] = useState({
-    notionToken: "",
-    notionDatabaseId: "",
-    statusProperty: "Status",
-    discordWebhookUrl: "",
-    selectedStatus: "Pendente",
-  });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    } else if (status === "authenticated") {
-      fetch("/api/config")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.id) setConfig(data);
-          setLoading(false);
-        });
-    }
-  }, [status, router]);
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    const res = await fetch("/api/config", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(config),
-    });
-    setSaving(false);
-    if (res.ok) setMessage("Config saved successfully!");
-    else setMessage("Error saving config");
-  };
-
-  const handleTest = async () => {
-    setTesting(true);
-    setMessage("");
-    const res = await fetch("/api/test-now", { method: "POST" });
-    setTesting(false);
-    if (res.ok) setMessage("Discord message sent!");
-    else {
-      const data = await res.json();
-      setMessage(`Error: ${data.error}`);
-    }
-  };
-
-  if (loading) return <p>Loading...</p>;
+export default function LandingPage() {
+  const { data: session } = useSession();
 
   return (
-    <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>Checklist Notion → Discord</h1>
-        <button onClick={() => signOut()}>Logout</button>
-      </div>
+    <main style={{ minHeight: "100vh", padding: "0 20px" }}>
+      {/* Navigation */}
+      <nav style={{
+        maxWidth: "1000px",
+        margin: "0 auto",
+        padding: "30px 0",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center"
+      }}>
+        <div style={{ fontSize: "1.5rem", fontWeight: "bold", fontFamily: "Outfit" }}>
+          Checklist<span style={{ color: "var(--accent)" }}>Sync</span>
+        </div>
+        <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
+          {session ? (
+            <Link href="/dashboard">
+              <button style={{ padding: "8px 20px" }}>Go to Dashboard</button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" style={{ fontSize: "0.9rem" }}>Login</Link>
+              <Link href="/register">
+                <button style={{ padding: "8px 20px" }}>Get Started</button>
+              </Link>
+            </>
+          )}
+        </div>
+      </nav>
 
-      <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "15px", marginTop: "20px" }}>
-        <label>
-          Notion Integration Token:
-          <input
-            type="password"
-            value={config.notionToken}
-            onChange={(e) => setConfig({ ...config, notionToken: e.target.value })}
-            style={{ width: "100%", padding: "8px" }}
-          />
-        </label>
-        <label>
-          Notion Database ID:
-          <input
-            type="text"
-            value={config.notionDatabaseId}
-            onChange={(e) => setConfig({ ...config, notionDatabaseId: e.target.value })}
-            style={{ width: "100%", padding: "8px" }}
-          />
-        </label>
-        <label>
-          Status Property Name:
-          <input
-            type="text"
-            value={config.statusProperty}
-            onChange={(e) => setConfig({ ...config, statusProperty: e.target.value })}
-            style={{ width: "100%", padding: "8px" }}
-          />
-        </label>
-        <label>
-          Status Value to Filter (ex: Pendente):
-          <input
-            type="text"
-            value={config.selectedStatus}
-            onChange={(e) => setConfig({ ...config, selectedStatus: e.target.value })}
-            style={{ width: "100%", padding: "8px" }}
-          />
-        </label>
-        <label>
-          Discord Webhook URL:
-          <input
-            type="text"
-            value={config.discordWebhookUrl}
-            onChange={(e) => setConfig({ ...config, discordWebhookUrl: e.target.value })}
-            style={{ width: "100%", padding: "8px" }}
-          />
-        </label>
+      {/* Hero Section */}
+      <section style={{
+        maxWidth: "1000px",
+        margin: "100px auto",
+        textAlign: "center"
+      }}>
+        <h1 style={{ fontSize: "4rem", lineHeight: "1.1", marginBottom: "24px" }}>
+          Automate your <span style={{ background: "var(--accent-gradient)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Notion Checklists</span> to Discord
+        </h1>
+        <p style={{
+          color: "var(--text-secondary)",
+          fontSize: "1.25rem",
+          maxWidth: "700px",
+          margin: "0 auto 40px",
+          lineHeight: "1.6"
+        }}>
+          Stop manually checking your Notion databases. Connect your tasks once and get automated checklist updates in your Discord channel based on your schedule.
+        </p>
+        <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
+          <Link href="/register">
+            <button style={{ padding: "16px 48px", fontSize: "1.1rem" }}>Start for Free</button>
+          </Link>
+        </div>
+      </section>
 
-        <button type="submit" disabled={saving}>
-          {saving ? "Saving..." : "Save Configuration"}
-        </button>
-      </form>
+      {/* Features Section */}
+      <section style={{
+        maxWidth: "1100px",
+        margin: "150px auto",
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: "32px"
+      }}>
+        <div className="glass-card" style={{ padding: "40px", textAlign: "left" }}>
+          <div style={{ fontSize: "2rem", marginBottom: "20px" }}>📂</div>
+          <h3 style={{ marginBottom: "12px", fontSize: "1.25rem" }}>Notion Integration</h3>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", lineHeight: "1.6" }}>
+            Connect to any Notion database using official integration tokens. Secure and robust.
+          </p>
+        </div>
 
-      <hr style={{ margin: "20px 0" }} />
+        <div className="glass-card" style={{ padding: "40px", textAlign: "left" }}>
+          <div style={{ fontSize: "2rem", marginBottom: "20px" }}>💬</div>
+          <h3 style={{ marginBottom: "12px", fontSize: "1.25rem" }}>Discord Webhooks</h3>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", lineHeight: "1.6" }}>
+            Instant formatting. Your tasks become beautiful checklists directly in your Discord channel.
+          </p>
+        </div>
 
-      <button onClick={handleTest} disabled={testing} style={{ padding: "10px", width: "100%", backgroundColor: "#5865F2", color: "white", border: "none", borderRadius: "4px", fontSize: "16px", cursor: "pointer" }}>
-        {testing ? "Testing..." : "Test Now"}
-      </button>
+        <div className="glass-card" style={{ padding: "40px", textAlign: "left" }}>
+          <div style={{ fontSize: "2rem", marginBottom: "20px" }}>⏳</div>
+          <h3 style={{ marginBottom: "12px", fontSize: "1.25rem" }}>Smart Filtering</h3>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", lineHeight: "1.6" }}>
+            Choose exactly which status to sync. No more clutter, only the tasks that matter now.
+          </p>
+        </div>
+      </section>
 
-      {message && <p style={{ marginTop: "10px", color: message.includes("Error") ? "red" : "green" }}>{message}</p>}
-    </div>
+      {/* Social Proof / Call to action */}
+      <section className="glass-card" style={{
+        maxWidth: "1000px",
+        margin: "150px auto",
+        textAlign: "center",
+        background: "linear-gradient(rgba(88, 101, 242, 0.1), rgba(0,0,0,0))",
+        border: "1px solid rgba(88, 101, 242, 0.2)"
+      }}>
+        <h2 style={{ fontSize: "2.5rem", marginBottom: "16px" }}>Ready to boost your productivity?</h2>
+        <p style={{ color: "var(--text-secondary)", marginBottom: "32px" }}>
+          Join users who are automating their workflows today.
+        </p>
+        <Link href="/register">
+          <button style={{ padding: "14px 40px" }}>Create Your Account</button>
+        </Link>
+      </section>
+
+      <footer style={{
+        textAlign: "center",
+        padding: "60px 0",
+        color: "var(--text-secondary)",
+        fontSize: "0.9rem",
+        borderTop: "1px solid var(--border)",
+        maxWidth: "1000px",
+        margin: "0 auto"
+      }}>
+        &copy; 2026 ChecklistSync. All rights reserved. Built for automation enthusiasts.
+      </footer>
+    </main>
   );
 }
